@@ -13,30 +13,48 @@ export default function PaymentReturn() {
     const params = new URLSearchParams(window.location.search);
     const id = params.get('case_id');
     const token = params.get('token');
+    // O Checkout Pro acrescenta payment_id ao redirecionar para o back_url.
+    const paymentId = params.get('payment_id') || params.get('collection_id');
+
     if (!id || !token) {
       setMessage('Não encontramos os dados de acompanhamento desta contratação.');
       return;
     }
+
     let stopped = false;
     let timer: ReturnType<typeof setInterval> | undefined;
+
     async function check() {
       try {
-        const response = await fetch(`/api/cases/${encodeURIComponent(id!)}/status?token=${encodeURIComponent(token!)}`, { cache: 'no-store' });
+        const query = new URLSearchParams({ token: token! });
+        if (paymentId && /^\d{1,25}$/.test(paymentId)) {
+          query.set('payment_id', paymentId);
+        }
+        const response = await fetch(
+          `/api/cases/${encodeURIComponent(id!)}/status?${query.toString()}`,
+          { cache: 'no-store' },
+        );
         if (!response.ok) throw new Error('Não foi possível validar o acesso.');
+
         const result = (await response.json()) as Status;
         if (stopped) return;
         setStatus(result);
+
         if (result.paid || result.status === 'payment_refunded') {
           if (timer) clearInterval(timer);
         } else {
           setMessage('O pagamento ainda não foi confirmado. Se você acabou de pagar, aguarde alguns instantes.');
         }
       } catch {
-        if (!stopped) setMessage('Não conseguimos consultar agora. Atualize esta página ou entre em contato.');
+        if (!stopped) {
+          setMessage('Não conseguimos consultar agora. Atualize esta página ou entre em contato.');
+        }
       }
     }
+
     void check();
     timer = setInterval(() => { void check(); }, 6000);
+
     return () => {
       stopped = true;
       if (timer) clearInterval(timer);

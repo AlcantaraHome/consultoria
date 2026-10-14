@@ -24,6 +24,11 @@ function hasValidSignature(request: Request, dataId: string) {
 export async function POST(request: Request) {
   try {
     const url = new URL(request.url);
+    console.info('[mp:webhook] Requisição recebida:', {
+      method: request.method,
+      eventType: url.searchParams.get('type') || url.searchParams.get('topic'),
+      paymentId: url.searchParams.get('data.id'),
+    });
     const eventType = url.searchParams.get('type') || url.searchParams.get('topic');
     if (eventType !== 'payment') return NextResponse.json({ ok: true });
 
@@ -47,8 +52,10 @@ export async function POST(request: Request) {
       .select('id, paid_at, status')
       .eq('id', payment.external_reference)
       .single();
-    if (findError || !currentCase)
+    if (findError || !currentCase) {
+      console.warn('[mp:webhook] 404: contratação não encontrada:', { paymentId, externalReference: payment.external_reference });
       return NextResponse.json({ error: 'Contratação não encontrada' }, { status: 404 });
+    }
 
     if (payment.status === 'approved' && !currentCase.paid_at) {
       const { error } = await supabase.from('consulting_cases')
