@@ -3,8 +3,6 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { createPreference } from '@/lib/mercado-pago';
 
-export const runtime = 'nodejs';
-
 type CheckoutInput = { name?: unknown; email?: unknown; phone?: unknown };
 const bad = (message: string, status = 400) =>
   NextResponse.json({ error: message }, { status });

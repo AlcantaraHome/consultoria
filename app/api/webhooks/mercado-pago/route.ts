@@ -3,8 +3,6 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getPayment, RAIO_X_PRICE } from '@/lib/mercado-pago';
 
-export const runtime = 'nodejs';
-
 function hasValidSignature(request: Request, dataId: string) {
   const secret = process.env.MP_WEBHOOK_SECRET;
   const requestId = request.headers.get('x-request-id');
