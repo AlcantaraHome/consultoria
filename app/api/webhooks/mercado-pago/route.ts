@@ -67,13 +67,14 @@ export async function POST(request: Request) {
           status: 'awaiting_form',
           paid_at: new Date().toISOString(),
           mp_payment_id: paymentId,
+          archived_at: null,
         })
         .eq('id', currentCase.id)
         .is('paid_at', null);
       if (error) throw error;
     } else if (['refunded', 'charged_back'].includes(payment.status)) {
       const { error } = await supabase.from('consulting_cases')
-        .update({ status: 'payment_refunded', mp_payment_id: paymentId })
+        .update({ status: 'payment_refunded', mp_payment_id: paymentId, archived_at: null })
         .eq('id', currentCase.id);
       if (error) throw error;
     }

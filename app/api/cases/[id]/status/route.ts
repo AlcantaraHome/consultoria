@@ -60,6 +60,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
             status: 'awaiting_form',
             paid_at: new Date().toISOString(),
             mp_payment_id: paymentId,
+            archived_at: null,
           })
           .eq('id', current.id)
           .eq('status', 'awaiting_payment')
