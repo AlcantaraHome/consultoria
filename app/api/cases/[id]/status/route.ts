@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getPayment } from '@/lib/mercado-pago';
+import { defaultFormUrl } from '@/lib/catalog';
 
 function constantTimeHexEquals(a: string, b: string) {
   if (!/^[a-f0-9]{64}$/.test(a) || !/^[a-f0-9]{64}$/.test(b)) return false;
@@ -86,7 +87,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   // tenha concluído a atualização enquanto processávamos a conciliação.
   const { data: latest, error: readError } = await supabase
     .from('consulting_cases')
-    .select('status, paid_at')
+    .select('status, paid_at, form_url')
     .eq('id', current.id)
     .single();
 
@@ -95,7 +96,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   }
 
   const paid = Boolean(latest.paid_at) && latest.status !== 'payment_refunded';
-  const formUrl = paid ? (process.env.PERGUMI_FORM_URL || null) : null;
+  const formUrl = paid ? (latest.form_url || await defaultFormUrl()) : null;
 
   return NextResponse.json(
     { status: latest.status, paid, formUrl },

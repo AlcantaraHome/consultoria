@@ -17,7 +17,7 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Raio-X iFood | Poucos pedidos ou pouco lucro?",
   description:
-    "Seu iFood vende pouco ou vende e não sobra dinheiro? Conheça o Raio-X iFood: análise individual, reunião e plano de ação por R$ 120.",
+    "Seu iFood vende pouco ou vende e não sobra dinheiro? Conheça o Raio-X iFood: análise individual, reunião e plano de ação.",
 };
 
 export default function RootLayout({

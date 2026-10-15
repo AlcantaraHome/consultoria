@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { getPayment, RAIO_X_PRICE } from '@/lib/mercado-pago';
+import { getPayment } from '@/lib/mercado-pago';
 
 function hasValidSignature(request: Request, dataId: string) {
   const secret = process.env.MP_WEBHOOK_SECRET;
@@ -41,20 +41,24 @@ export async function POST(request: Request) {
     // A notificação não é a fonte da verdade: consultamos o Mercado Pago.
     const payment = await getPayment(paymentId);
     if (!payment.external_reference ||
-        payment.transaction_amount !== RAIO_X_PRICE ||
         payment.currency_id !== 'BRL' ||
         String(payment.id) !== paymentId) {
-      return NextResponse.json({ error: 'Pagamento não corresponde ao pedido' }, { status: 400 });
+      return NextResponse.json({ error: 'Pagamento inválido' }, { status: 400 });
     }
     const supabase = supabaseAdmin();
     const { data: currentCase, error: findError } = await supabase
       .from('consulting_cases')
-      .select('id, paid_at, status')
+      .select('id, paid_at, status, price_cents')
       .eq('id', payment.external_reference)
-      .single();
+      .maybeSingle();
     if (findError || !currentCase) {
-      console.warn('[mp:webhook] 404: contratação não encontrada:', { paymentId, externalReference: payment.external_reference });
+      console.warn('[mp:webhook] Contratação não encontrada:', { paymentId });
       return NextResponse.json({ error: 'Contratação não encontrada' }, { status: 404 });
+    }
+    // O preço está congelado na contratação, mesmo que o admin o altere depois.
+    if (typeof payment.transaction_amount !== 'number' ||
+        Math.round(payment.transaction_amount * 100) !== currentCase.price_cents) {
+      return NextResponse.json({ error: 'Valor não corresponde à contratação' }, { status: 400 });
     }
 
     if (payment.status === 'approved' && !currentCase.paid_at) {

@@ -1,3 +1,5 @@
+import { connection } from 'next/server';
+import { findService, formatBRL } from '@/lib/catalog';
 const hasWhatsApp = Boolean(process.env.NEXT_PUBLIC_WHATSAPP_URL);
 const whatsappUrl = process.env.NEXT_PUBLIC_WHATSAPP_URL || "#faq";
 const whatsappLabel = hasWhatsApp ? "Tirar uma dúvida no WhatsApp" : "Ver dúvidas antes de contratar";
@@ -41,7 +43,7 @@ const diagnosticItems = [
 ];
 
 const steps = [
-  ["01", "Você contrata", "O investimento é de R$ 120. Após a confirmação do pagamento, o formulário é liberado."],
+  ["01", "Você contrata", "Após a confirmação do pagamento, o formulário é liberado."],
   ["02", "Você me conta sobre a loja", "Preenche o formulário e informa o que já tem: cardápio, custos, números e dificuldades."],
   ["03", "Eu estudo seu caso", "Faço uma pré-análise e identifico quais informações ainda precisamos esclarecer."],
   ["04", "A gente conversa", "Entro em contato para marcar uma reunião e entender os detalhes que os números não mostram."],
@@ -59,7 +61,10 @@ const faq = [
   ["Posso falar com você antes de pagar?", "Claro. Se alguma dúvida não estiver respondida nesta página, você pode falar comigo antes de contratar."],
 ];
 
-export default function Home() {
+export default async function Home() {
+  await connection();
+  const raiz = await findService('raio-x-ifood').catch(() => null);
+  const price = raiz?.price_cents ?? 12000;
   return (
     <main>
       <header className="site-header">
@@ -73,6 +78,7 @@ export default function Home() {
 
         <nav className="nav" aria-label="Navegação principal">
           <a href="#raio-x">O Raio-X</a>
+          <a href="/servicos">Serviços</a>
           <a href="#entrega">O que recebo</a>
           <a href="#como-funciona">Como funciona</a>
           <a href="#faq">Dúvidas</a>
@@ -108,7 +114,7 @@ export default function Home() {
             </div>
 
             <div className="hero-trust">
-              <span>R$ 120 • valor único</span>
+              <span>{formatBRL(price)} • valor único</span>
               <span>Reunião individual</span>
               <span>Relatório com plano de ação</span>
             </div>
@@ -387,7 +393,7 @@ export default function Home() {
 
           <div className="price">
             <small>R$</small>
-            <strong>120</strong>
+            <strong>{(price / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
           </div>
 
           <ul>
