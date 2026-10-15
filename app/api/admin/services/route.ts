@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       slug,title,description,price_cents:price,form_url:form,
       is_active: body.is_active !== false,
     }).select('*').single();
-    if (error) { console.error('[admin:service:create]',error); return apiError('Não foi possível criar. O endereço do serviço pode já existir.',409); }
+    if (error) { console.error('[admin:service:create]',error); return apiError('Não foi possível criar. Esse identificador pode já existir, inclusive em um serviço excluído que pode ser restaurado.',409); }
     return NextResponse.json({ service:data },{status:201});
   } catch { return apiError('Dados inválidos.'); }
 }

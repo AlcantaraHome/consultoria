@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 
-type Service={ id:string;slug:string;title:string;description:string;price_cents:number;form_url:string|null;is_active:boolean;sort_order:number };
+type Service={ id:string;slug:string;title:string;description:string;price_cents:number;form_url:string|null;is_active:boolean;sort_order:number;deleted_at:string|null };
 type Case={id:string;client_name:string;email:string;phone:string;service_title:string|null;price_cents:number;status:string;created_at:string;paid_at:string|null;mp_payment_id:string|null;form_url:string|null;service_id:string|null;archived_at:string|null};
 type Tab='resumo'|'servicos'|'cobrancas'|'clientes'|'configuracoes';
 type ServiceDraft={id?:string;slug:string;title:string;description:string;price:string;form_url:string;is_active:boolean;sort_order:number};
@@ -42,6 +42,7 @@ export default function Dashboard({adminEmail}:{adminEmail:string}){
   const [notice,setNotice]=useState('');
   const [busy,setBusy]=useState(false);
   const [editor,setEditor]=useState<ServiceDraft|null>(null);
+  const [showDeletedServices,setShowDeletedServices]=useState(false);
   const [checkoutService,setCheckoutService]=useState('');
   const [checkoutName,setCheckoutName]=useState('');
   const [checkoutEmail,setCheckoutEmail]=useState('');
@@ -59,7 +60,10 @@ export default function Dashboard({adminEmail}:{adminEmail:string}){
     setOverviewCases(overviewData.cases);
     setDefaultForm(settingsData.settings.default_form_url||'');
     setAutoArchiveDays(settingsData.settings.auto_archive_after_days||0);
-    setCheckoutService(prev=>prev || serviceData.services.find(s=>s.is_active)?.slug || '');
+    setCheckoutService(prev=>{
+      const available=serviceData.services.filter(s=>s.is_active && !s.deleted_at);
+      return available.some(s=>s.slug===prev) ? prev : (available[0]?.slug || '');
+    });
   },[]);
   useEffect(()=>{reload().catch(e=>setError(e.message)).finally(()=>setLoaded(true));},[reload]);
   useEffect(()=>{
@@ -85,7 +89,9 @@ export default function Dashboard({adminEmail}:{adminEmail:string}){
   },[loaded,loadCases]);
   const paid=useMemo(()=>overviewCases.filter(c=>Boolean(c.paid_at) && c.status!=='payment_refunded'),[overviewCases]);
   const revenue=paid.reduce((total,c)=>total+c.price_cents,0);
-  const active=services.filter(s=>s.is_active);
+  const active=services.filter(s=>s.is_active && !s.deleted_at);
+  const visibleServices=services.filter(s=>showDeletedServices ? Boolean(s.deleted_at) : !s.deleted_at);
+  const deletedServiceCount=services.filter(s=>Boolean(s.deleted_at)).length;
   function toast(message:string){setNotice(message);setError('');}
   async function copy(value:string){try{await navigator.clipboard.writeText(value);toast('Link copiado.');}catch{setError('Seu navegador não permitiu copiar. Selecione o link manualmente.');}}
   const baseUrl=typeof window==='undefined'?'':window.location.origin;
@@ -100,6 +106,30 @@ export default function Dashboard({adminEmail}:{adminEmail:string}){
       await json(url,requestJSON(editor.id?'PATCH':'POST',payload));
       await reload();setEditor(null);toast('Serviço salvo. As próximas cobranças já utilizarão o novo preço.');
     }catch(e){setError(e instanceof Error?e.message:'Erro ao salvar serviço');}finally{setBusy(false);}
+  }
+  async function deleteService(service:Service){
+    if(service.slug==='raio-x-ifood'){
+      setError('O Raio-X iFood ainda é usado pela landing principal. Para removê-lo, é necessário alterar primeiro o serviço padrão da página inicial.');
+      return;
+    }
+    if(!window.confirm(`Excluir "${service.title}" do catálogo?\n\nO link público deixará de funcionar para novas contratações. As cobranças já criadas e o histórico serão mantidos. Você poderá restaurar o serviço depois.`))return;
+    setBusy(true);setError('');setNotice('');
+    try{
+      await json<{ok:boolean}>(`/api/admin/services/${service.id}`,{method:'DELETE'});
+      await reload();
+      toast('Serviço excluído do catálogo. O histórico de vendas foi preservado.');
+    }catch(e){setError(e instanceof Error?e.message:'Erro ao excluir serviço');}
+    finally{setBusy(false);}
+  }
+  async function restoreService(service:Service){
+    setBusy(true);setError('');setNotice('');
+    try{
+      await json(`/api/admin/services/${service.id}`,requestJSON('PATCH',{restore:true}));
+      setShowDeletedServices(false);
+      await reload();
+      toast('Serviço restaurado como inativo. Edite-o e marque "Serviço ativo" para publicá-lo.');
+    }catch(e){setError(e instanceof Error?e.message:'Erro ao restaurar serviço');}
+    finally{setBusy(false);}
   }
   async function saveSettings(e:FormEvent<HTMLFormElement>){
     e.preventDefault();setBusy(true);setError('');setNotice('');
@@ -168,8 +198,39 @@ export default function Dashboard({adminEmail}:{adminEmail:string}){
       </>}
       {tab==='servicos'&&<>
         <div className="admin-section-head"><div><span>SEU CATÁLOGO</span><h2>Serviços sob seu controle</h2><p>Editar preços aqui atualiza o checkout das próximas contratações.</p></div><button className="admin-primary" onClick={()=>setEditor({...emptyService})}>+ Novo serviço</button></div>
-        <div className="admin-services-list">{services.map(s=><article className="admin-service-card" key={s.id}><div><div className="admin-service-meta"><span className={s.is_active?'admin-status-chip':'admin-status-chip inactive'}>{s.is_active?'Publicado':'Inativo'}</span><span>/{s.slug}</span></div><h3>{s.title}</h3><p>{s.description||'Sem descrição'}</p><small>Formulário: {s.form_url?'Personalizado':'Padrão da consultoria'}</small></div><div className="admin-service-actions"><strong>{money(s.price_cents)}</strong><button onClick={()=>setEditor(serviceDraft(s))} className="admin-outline">Editar</button><button onClick={()=>copy(`${baseUrl}/contratar?servico=${encodeURIComponent(s.slug)}`)} disabled={!s.is_active} className="admin-text-button">Copiar link ↗</button></div></article>)}</div>
-        <p className="admin-hint">Ao inativar um serviço, novos checkouts deixam de ser criados. Contratações anteriores não mudam.</p>
+        <div className="admin-services-toolbar">
+          <p>Serviços excluídos saem do catálogo e deixam de gerar novos links. Vendas anteriores continuam no histórico.</p>
+          <button type="button" className="admin-outline" onClick={()=>setShowDeletedServices(v=>!v)}>
+            {showDeletedServices?'← Voltar ao catálogo':`Ver excluídos (${deletedServiceCount})`}
+          </button>
+        </div>
+        <div className="admin-services-list">
+          {visibleServices.length===0 && <div className="admin-services-empty">{showDeletedServices?'Nenhum serviço excluído.':'Nenhum serviço cadastrado. Clique em Novo serviço para começar.'}</div>}
+          {visibleServices.map(s=><article className="admin-service-card" key={s.id}>
+            <div>
+              <div className="admin-service-meta">
+                <span className={s.deleted_at?'admin-status-chip inactive':s.is_active?'admin-status-chip':'admin-status-chip inactive'}>{s.deleted_at?'Excluído':s.is_active?'Publicado':'Inativo'}</span>
+                <span>/{s.slug}</span>
+              </div>
+              <h3>{s.title}</h3>
+              <p>{s.description||'Sem descrição'}</p>
+              <small>Formulário: {s.form_url?'Personalizado':'Padrão da consultoria'}</small>
+            </div>
+            <div className="admin-service-actions">
+              <strong>{money(s.price_cents)}</strong>
+              {s.deleted_at ?
+                <button className="admin-outline" disabled={busy} onClick={()=>restoreService(s)}>Restaurar</button>
+              : <>
+                <button className="admin-outline" disabled={busy} onClick={()=>setEditor(serviceDraft(s))}>Editar</button>
+                <button className="admin-text-button" disabled={busy||!s.is_active} onClick={()=>copy(`${baseUrl}/contratar?servico=${encodeURIComponent(s.slug)}`)}>Copiar link ↗</button>
+                {s.slug==='raio-x-ifood'
+                  ? <small title="A landing principal depende desse serviço.">Serviço principal</small>
+                  : <button type="button" className="admin-delete-button" disabled={busy} onClick={()=>deleteService(s)}>Excluir</button>}
+              </>}
+            </div>
+          </article>)}
+        </div>
+        <p className="admin-hint">Excluir apenas retira o serviço do catálogo e desativa novos checkouts, sem apagar vendas ou reembolsar pagamentos. O Raio-X principal fica protegido porque a landing depende dele.</p>
         {editor&&<div className="admin-modal-backdrop" onClick={()=>setEditor(null)}><section className="admin-modal" role="dialog" aria-modal="true" aria-label="Editar serviço" onClick={e=>e.stopPropagation()}><header><div><span className="admin-eyebrow">CATÁLOGO</span><h2>{editor.id?'Editar serviço':'Novo serviço'}</h2></div><button onClick={()=>setEditor(null)} aria-label="Fechar">×</button></header><form onSubmit={saveService} className="admin-form"><label>Título<input required minLength={3} maxLength={120} value={editor.title} onChange={e=>setEditor({...editor,title:e.target.value})} placeholder="Ex.: Ajuste de cardápio"/></label><label>Identificador do link (não poderá ser alterado){editor.id&&<small>O link já foi criado e permanece estável.</small>}<input required disabled={Boolean(editor.id)} pattern="[a-z0-9]+(-[a-z0-9]+)*" value={editor.slug} onChange={e=>setEditor({...editor,slug:e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,'')})} placeholder="ajuste-cardapio"/></label><label>Descrição<textarea maxLength={2000} rows={3} value={editor.description} onChange={e=>setEditor({...editor,description:e.target.value})}/></label><div className="admin-form-grid"><label>Preço (R$)<input required inputMode="decimal" value={editor.price} onChange={e=>setEditor({...editor,price:e.target.value})} placeholder="120,00"/></label><label>Ordem no catálogo<input type="number" value={editor.sort_order} onChange={e=>setEditor({...editor,sort_order:Number(e.target.value)})}/></label></div><label>URL específica do formulário (opcional)<input type="url" placeholder="https://pergumi..." value={editor.form_url} onChange={e=>setEditor({...editor,form_url:e.target.value})}/><small>Vazio utiliza o formulário padrão em Configurações.</small></label><label className="admin-check"><input type="checkbox" checked={editor.is_active} onChange={e=>setEditor({...editor,is_active:e.target.checked})}/> Serviço ativo e disponível para contratação</label><div className="admin-form-actions"><button type="button" className="admin-outline" onClick={()=>setEditor(null)}>Cancelar</button><button className="admin-primary" disabled={busy}>{busy?'Salvando...':'Salvar serviço'}</button></div></form></section></div>}
       </>}
       {tab==='cobrancas'&&<div className="admin-two-col"><section className="admin-box"><span className="admin-eyebrow">LINK EXCLUSIVO</span><h2>Gerar checkout para um cliente</h2><p>Preencha os dados do comprador. O sistema criará a contratação e o link de pagamento diretamente no Mercado Pago.</p><form className="admin-form" onSubmit={createPayment}><label>Serviço<select required value={checkoutService} onChange={e=>setCheckoutService(e.target.value)}>{active.map(s=><option key={s.id} value={s.slug}>{s.title} · {money(s.price_cents)}</option>)}</select></label><label>Nome completo<input required value={checkoutName} onChange={e=>setCheckoutName(e.target.value)} placeholder="Nome e sobrenome"/></label><label>E-mail<input type="email" required value={checkoutEmail} onChange={e=>setCheckoutEmail(e.target.value)}/></label><label>WhatsApp com DDD<input type="tel" required value={checkoutPhone} onChange={e=>setCheckoutPhone(e.target.value)} placeholder="(19) 99999-9999"/></label><button className="admin-primary" type="submit" disabled={busy||!active.length}>{busy?'Criando...':'Gerar checkout ↗'}</button></form>{checkoutUrl&&<div className="admin-generated"><strong>Checkout criado com sucesso</strong><p>Referência: {checkoutCase}</p><input readOnly value={checkoutUrl} onFocus={e=>e.target.select()}/><button className="admin-primary" onClick={()=>copy(checkoutUrl)}>Copiar link de pagamento</button><a href={checkoutUrl} target="_blank" rel="noreferrer">Abrir no Mercado Pago ↗</a></div>}</section><aside className="admin-box admin-box--secondary"><span className="admin-eyebrow">LINKS REUTILIZÁVEIS</span><h2>Compartilhe a contratação</h2><p>Para anúncios, Instagram e WhatsApp, utilize o link público de cada serviço. O cliente preenche os próprios dados e um novo checkout é criado automaticamente.</p>{active.map(s=><div className="admin-public-link" key={s.id}><span><strong>{s.title}</strong><small>{money(s.price_cents)}</small></span><button className="admin-outline" onClick={()=>copy(`${baseUrl}/contratar?servico=${s.slug}`)}>Copiar ↗</button></div>)}<a href="/servicos" target="_blank" rel="noreferrer" className="admin-text-button">Abrir catálogo público ↗</a></aside></div>}

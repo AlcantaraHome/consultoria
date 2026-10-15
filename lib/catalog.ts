@@ -18,7 +18,7 @@ export const formatBRL = (cents: number) => (cents / 100).toLocaleString('pt-BR'
 export async function findService(slug: string): Promise<Service | null> {
   const { data, error } = await supabaseAdmin().from('consulting_services')
     .select('id,slug,title,description,price_cents,form_url,is_active,sort_order')
-    .eq('slug', slug).eq('is_active', true).maybeSingle();
+    .eq('slug', slug).eq('is_active', true).is('deleted_at', null).maybeSingle();
   if (error) throw error;
   return data as Service | null;
 }

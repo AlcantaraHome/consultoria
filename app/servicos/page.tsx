@@ -10,6 +10,7 @@ async function ServicesList() {
     .from('consulting_services')
     .select('id,slug,title,description,price_cents')
     .eq('is_active', true)
+    .is('deleted_at', null)
     .order('sort_order')
     .order('title');
 
