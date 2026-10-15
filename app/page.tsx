@@ -1,3 +1,4 @@
+import { Suspense, cache } from 'react';
 import { connection } from 'next/server';
 import { findService, formatBRL } from '@/lib/catalog';
 const hasWhatsApp = Boolean(process.env.NEXT_PUBLIC_WHATSAPP_URL);
@@ -61,10 +62,32 @@ const faq = [
   ["Posso falar com você antes de pagar?", "Claro. Se alguma dúvida não estiver respondida nesta página, você pode falar comigo antes de contratar."],
 ];
 
-export default async function Home() {
+// A consulta ao Supabase só ocorre durante a requisição, dentro de Suspense.
+// React cache compartilha o resultado entre as duas exibições de preço da mesma requisição.
+const getRaioXPrice = cache(async (): Promise<number> => {
   await connection();
-  const raiz = await findService('raio-x-ifood').catch(() => null);
-  const price = raiz?.price_cents ?? 12000;
+  const service = await findService('raio-x-ifood').catch(() => null);
+  return service?.price_cents ?? 12000;
+});
+
+async function HeroPrice() {
+  const price = await getRaioXPrice();
+  return <span>{formatBRL(price)} • valor único</span>;
+}
+
+async function PurchasePrice() {
+  const price = await getRaioXPrice();
+  return (
+    <strong>
+      {(price / 100).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}
+    </strong>
+  );
+}
+
+export default function Home() {
   return (
     <main>
       <header className="site-header">
@@ -114,7 +137,9 @@ export default async function Home() {
             </div>
 
             <div className="hero-trust">
-              <span>{formatBRL(price)} • valor único</span>
+              <Suspense fallback={<span>Valor disponível ao contratar</span>}>
+                <HeroPrice />
+              </Suspense>
               <span>Reunião individual</span>
               <span>Relatório com plano de ação</span>
             </div>
@@ -393,7 +418,9 @@ export default async function Home() {
 
           <div className="price">
             <small>R$</small>
-            <strong>{(price / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+            <Suspense fallback={<strong>—</strong>}>
+              <PurchasePrice />
+            </Suspense>
           </div>
 
           <ul>
