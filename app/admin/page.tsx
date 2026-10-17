@@ -1,11 +1,13 @@
-
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { currentAdmin } from "@/lib/admin-auth";
 import Dashboard from "./dashboard";
 import "./admin.css";
 
 async function AdminContent() {
+  await connection();
+
   const admin = await currentAdmin();
 
   if (!admin) {
