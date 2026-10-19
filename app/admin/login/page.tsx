@@ -1,6 +1,7 @@
 'use client';
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
+import BrandLogo from '../../brand-logo';
 import '../admin.css';
 export default function AdminLogin() {
   const [email,setEmail]=useState('');
@@ -18,7 +19,7 @@ export default function AdminLogin() {
   }
   return <main className="admin-login-shell"><section className="admin-login-card">
     <Link href="/" className="admin-back">← Voltar ao site</Link>
-    <div className="admin-brandmark">TA<span>↗</span></div>
+    <BrandLogo variant="symbol" className="admin-login-brand" priority />
     <span className="admin-eyebrow">ÁREA RESTRITA</span>
     <h1>Seu espaço de gestão.</h1>
     <p>Acompanhe contratações, controle valores e gere novos pagamentos.</p>

@@ -82,48 +82,37 @@ main {
   gap: 14px;
 }
 
-.brand-copy strong,
-.brand-copy small,
-.footer-brand strong,
-.footer-brand span {
+/* Logos reais: a assinatura ja inclui nome e slogan; nao duplicar texto. */
+.brand-logo {
   display: block;
+  flex: 0 0 auto;
+  object-fit: contain;
 }
 
-.brand-copy strong,
-.footer-brand strong {
-  font-family: var(--font-jakarta), Arial, sans-serif;
-  font-size: 16px;
-  line-height: 1.22;
-  letter-spacing: -0.2px;
-}
-
-.brand-copy small,
-.footer-brand span {
-  margin-top: 5px;
-  color: #afafaf;
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.75px;
-  text-transform: uppercase;
-}
-
-
-.logo-placeholder {
-  display: block;
+.brand-logo--symbol {
   width: 72px;
   height: 72px;
-  flex: 0 0 auto;
-  border-radius: 18px;
-  background: var(--red);
-  box-shadow: 0 10px 30px rgba(184, 15, 26, 0.18);
 }
 
-.logo-placeholder--compact {
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
+.brand-logo--signature {
+  width: 255px;
+  height: 66px;
 }
 
+.brand-logo--header {
+  width: min(400px, 100%);
+  height: 100px;
+}
+
+.brand-logo--footer {
+  width: 250px;
+  height: 66px;
+}
+
+@media (max-width: 480px) {
+  .brand-logo--header { width: 178px; height: 53px; }
+  .brand-logo--footer { width: 210px; height: 60px; }
+}
 
 .nav {
   display: flex;
@@ -787,7 +776,7 @@ main {
     #101010;
 }
 
-.purchase-copy .logo-placeholder {
+.purchase-copy .brand-logo--symbol {
   margin-bottom: 30px;
 }
 
@@ -942,14 +931,6 @@ main {
 
   .site-header {
     min-height: 74px;
-  }
-
-  .brand-copy small {
-    display: none;
-  }
-
-  .brand-copy strong {
-    font-size: 14px;
   }
 
   .nav .nav-whatsapp {

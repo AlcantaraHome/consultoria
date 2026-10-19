@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import BrandLogo from '../brand-logo';
 
 type Service={ id:string;slug:string;title:string;description:string;price_cents:number;form_url:string|null;is_active:boolean;sort_order:number;deleted_at:string|null };
 type Case={id:string;client_name:string;email:string;phone:string;service_title:string|null;price_cents:number;status:string;created_at:string;paid_at:string|null;mp_payment_id:string|null;form_url:string|null;service_id:string|null;archived_at:string|null};
@@ -180,7 +181,7 @@ export default function Dashboard({adminEmail}:{adminEmail:string}){
   async function logout(){await fetch('/api/admin/auth/logout',{method:'POST'});window.location.assign('/admin/login');}
   const navigation:[Tab,string,string][]=[['resumo','Visão geral','▦'],['servicos','Serviços e preços','◇'],['cobrancas','Gerar checkout','↗'],['clientes','Contratações','◎'],['configuracoes','Configurações','⚙']];
   return <main className="admin-app">
-    <aside className="admin-sidebar"><a href="/admin" className="admin-logo"><span>TA<span>↗</span></span><div><strong>THIAGO DE ALCÂNTARA</strong><small>PAINEL DE GESTÃO</small></div></a>
+    <aside className="admin-sidebar"><a href="/admin" className="admin-logo"><BrandLogo variant="symbol" className="admin-logo-image" priority /><div><strong>THIAGO DE ALCÂNTARA</strong><small>PAINEL DE GESTÃO</small></div></a>
       <div className="admin-side-label">ESPAÇO DE TRABALHO</div>
       <nav className="admin-nav" aria-label="Menu administrativo">{navigation.map(([id,label,mark])=><button key={id} onClick={()=>{setTab(id);setError('');setNotice('');setEditor(null);}} className={tab===id?'selected':''}><span className="admin-nav-icon">{mark}</span>{label}</button>)}</nav>
       <div className="admin-sidebar-bottom"><a href="/" target="_blank" rel="noreferrer">Ver site público ↗</a><div className="admin-user"><span className="admin-avatar">{adminEmail[0]?.toUpperCase()||'A'}</span><div><strong>Administrador</strong><small>{adminEmail}</small></div></div><button onClick={logout} className="admin-logout">Sair da conta →</button></div>

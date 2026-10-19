@@ -1,19 +1,10 @@
 import { Suspense, cache } from 'react';
 import { connection } from 'next/server';
 import { findService, formatBRL } from '@/lib/catalog';
+import BrandLogo from './brand-logo';
 const hasWhatsApp = Boolean(process.env.NEXT_PUBLIC_WHATSAPP_URL);
 const whatsappUrl = process.env.NEXT_PUBLIC_WHATSAPP_URL || "#faq";
 const whatsappLabel = hasWhatsApp ? "Tirar uma dúvida no WhatsApp" : "Ver dúvidas antes de contratar";
-
-function LogoPlaceholder({ compact = false }: { compact?: boolean }) {
-  return (
-    <span
-      className={`logo-placeholder ${compact ? "logo-placeholder--compact" : ""}`}
-      role="img"
-      aria-label="Espaço reservado para a logo"
-    />
-  );
-}
 
 const problems = [
   {
@@ -92,11 +83,7 @@ export default function Home() {
     <main>
       <header className="site-header">
         <a className="brand" href="#top" aria-label="Thiago de Alcântara — início">
-          <LogoPlaceholder compact />
-          <span className="brand-copy">
-            <strong>Thiago de Alcântara</strong>
-            <small>Consultoria para negócios de alimentação</small>
-          </span>
+          <BrandLogo variant="signature" className="brand-logo--header" priority />
         </a>
 
         <nav className="nav" aria-label="Navegação principal">
@@ -147,7 +134,7 @@ export default function Home() {
 
           <aside className="hero-card" aria-label="Perguntas do diagnóstico">
             <div className="hero-card__top">
-              <LogoPlaceholder />
+              <BrandLogo variant="symbol" />
               <div>
                 <span>Thiago de Alcântara</span>
                 <strong>Raio-X iFood</strong>
@@ -330,7 +317,7 @@ export default function Home() {
         </div>
         <div className="about-card">
           <div className="about-card__person">
-            <LogoPlaceholder />
+            <BrandLogo variant="symbol" />
             <div>
               <strong>Thiago de Alcântara</strong>
               <small>Consultoria para pequenos negócios de alimentação</small>
@@ -401,7 +388,7 @@ export default function Home() {
 
       <section className="section purchase-section" id="contratar">
         <div className="purchase-copy">
-          <LogoPlaceholder />
+          <BrandLogo variant="symbol" />
           <span className="eyebrow">RAIO-X IFOOD</span>
           <h2>Descubra por onde começar a melhorar sua loja.</h2>
           <p>
@@ -445,11 +432,7 @@ export default function Home() {
 
       <footer className="site-footer">
         <div className="footer-brand">
-          <LogoPlaceholder compact />
-          <div>
-            <strong>Thiago de Alcântara</strong>
-            <span>Consultoria para negócios de alimentação</span>
-          </div>
+          <BrandLogo variant="signature" className="brand-logo--footer" />
         </div>
 
         <div className="footer-end">
