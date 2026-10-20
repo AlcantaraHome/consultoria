@@ -64,15 +64,18 @@ export default function PaymentReturn() {
   const approved = status?.paid === true;
   return (
     <main className="payment-shell">
-      <Link href="/" className="checkout-back">← Raio-X iFood</Link>
+      <Link href="/" className="checkout-back">← Voltar ao site</Link>
       <article className="payment-panel">
         <span className="eyebrow">ACOMPANHAMENTO DO PAGAMENTO</span>
         <h1>{approved ? 'Pagamento confirmado.' : 'Estamos conferindo seu pagamento.'}</h1>
         {approved ? (
           <>
-            <p>Seu Raio-X foi contratado. A próxima etapa é preencher o formulário sobre sua operação.</p>
+            <p>Seu pagamento foi confirmado e a contratação foi registrada.</p>
             {status?.formUrl ? (
-              <a className="button button--primary" href={status.formUrl} rel="noopener noreferrer" target="_blank">Preencher meu Raio-X →</a>
+              <>
+                <p>Para continuar, preencha o formulário do serviço contratado.</p>
+                <a className="button button--primary" href={status.formUrl} rel="noopener noreferrer" target="_blank">Preencher formulário →</a>
+              </>
             ) : (
               <p className="checkout-error">O pagamento está confirmado, mas o link do formulário ainda não foi configurado. Entre em contato para recebê-lo.</p>
             )}
